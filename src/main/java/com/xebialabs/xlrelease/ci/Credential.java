@@ -208,7 +208,7 @@ public class Credential extends AbstractDescribableImpl<Credential> {
                     return FormValidation.error("No credentials specified");
                 }
                 StandardUsernamePasswordCredentials credentials = lookupSystemCredentials(credentialsId);
-                if (credentials == null) {
+                if (useGlobalCredential && credentials == null) {
                     return FormValidation.error(String.format("Could not find credential with id '%s'", credentialsId));
                 }
                 if (serverUrl == null || serverUrl.isEmpty()) {
