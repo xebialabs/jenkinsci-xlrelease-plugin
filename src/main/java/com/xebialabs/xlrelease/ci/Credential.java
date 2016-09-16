@@ -119,7 +119,7 @@ public class Credential extends AbstractDescribableImpl<Credential> {
     }
 
     public boolean showGolbalCredentials() {
-        return credentialsId != null;
+        return useGlobalCredential;
     }
 
     @Override
