@@ -57,8 +57,8 @@ import static hudson.util.FormValidation.ok;
 
 public class Credential extends AbstractDescribableImpl<Credential> {
 
-    public static final SchemeRequirement HTTP_SCHEME = new SchemeRequirement("http");
-    public static final SchemeRequirement HTTPS_SCHEME = new SchemeRequirement("https");
+    private static final SchemeRequirement HTTP_SCHEME = new SchemeRequirement("http");
+    private static final SchemeRequirement HTTPS_SCHEME = new SchemeRequirement("https");
 
     public static final Function<Credential, String> CREDENTIAL_INDEX = new Function<Credential, String>() {
         public String apply(Credential input) {
@@ -73,7 +73,7 @@ public class Credential extends AbstractDescribableImpl<Credential> {
     public final boolean useGlobalCredential;
 
     @DataBoundConstructor
-    public Credential(String name, String username, Secret password, String credentialsId,boolean useGlobalCredential ,SecondaryServerInfo secondaryServerInfo) {
+    public Credential(String name, String username, Secret password, String credentialsId, boolean useGlobalCredential , SecondaryServerInfo secondaryServerInfo) {
         this.name = name;
         this.username = username;
         this.password = password;
@@ -211,7 +211,7 @@ public class Credential extends AbstractDescribableImpl<Credential> {
                 if (useGlobalCredential && credentials == null) {
                     return FormValidation.error(String.format("Could not find credential with id '%s'", credentialsId));
                 }
-                if (serverUrl == null || serverUrl.isEmpty()) {
+                if (!Strings.isNullOrEmpty(serverUrl)) {
                     return FormValidation.error("No server URL specified");
                 }
 

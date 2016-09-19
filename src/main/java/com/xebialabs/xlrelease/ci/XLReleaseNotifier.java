@@ -171,7 +171,7 @@ public class XLReleaseNotifier extends Notifier {
                     StandardUsernamePasswordCredentials cred =  Credential.lookupSystemCredentials(credential.credentialsId);
                     credentialServerMap.put(credential.name, xlReleaseServerFactory.newInstance(serverUrl, proxyUrl,
                             cred.getUsername(), cred.getPassword() != null ? cred.getPassword().getPlainText() : ""));
-                }else {
+                } else {
                     credentialServerMap.put(credential.name, xlReleaseServerFactory.newInstance(serverUrl, proxyUrl,
                             credential.username, credential.password != null ? credential.password.getPlainText() : ""));
                 }
