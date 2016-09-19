@@ -211,7 +211,7 @@ public class Credential extends AbstractDescribableImpl<Credential> {
                 if (useGlobalCredential && credentials == null) {
                     return FormValidation.error(String.format("Could not find credential with id '%s'", credentialsId));
                 }
-                if (!Strings.isNullOrEmpty(serverUrl)) {
+                if (Strings.isNullOrEmpty(serverUrl)) {
                     return FormValidation.error("No server URL specified");
                 }
 
