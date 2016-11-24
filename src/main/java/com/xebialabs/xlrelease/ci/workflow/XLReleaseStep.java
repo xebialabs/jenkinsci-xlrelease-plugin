@@ -86,7 +86,7 @@ public class XLReleaseStep extends AbstractStepImpl {
 
         @Override
         public String getFunctionName() {
-            return "xlrCreateRelease";
+            return "xlRelease";
         }
 
         @Override

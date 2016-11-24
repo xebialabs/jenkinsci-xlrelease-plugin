@@ -115,7 +115,6 @@ configurations.all {
 }
 
 dependencies {
-    compile "com.google.guava:guava:13.0"
     compile "com.sun.jersey:jersey-client:1.18"
     compile "com.sun.jersey:jersey-core:1.18"
     compile "com.sun.jersey:jersey-json:1.18"
