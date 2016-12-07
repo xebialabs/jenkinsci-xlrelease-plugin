@@ -3,6 +3,10 @@ package com.xebialabs.xlrelease.ci.server;
 import java.util.ArrayList;
 import java.util.List;
 import javax.ws.rs.core.MediaType;
+
+import com.sun.jersey.api.client.GenericType;
+import com.xebialabs.xlrelease.ci.util.Folder;
+import com.xebialabs.xlrelease.ci.util.Release;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
 import org.apache.commons.collections.Transformer;
@@ -32,9 +36,27 @@ public class XLReleaseConnectorImpl extends AbstractXLReleaseConnector {
     @Override
     public ClientResponse createReleaseResponse(final String resolvedTemplate, final String resolvedVersion, final List<NameValuePair> variables) {
         WebResource service = buildWebResource();
+        String queryString = resolvedTemplate.replaceAll(SLASH_ESCAPE_SEQ,SLASH_MARKER);
+        final String folderId = getFolderId(queryString);
+        final String templateName = queryString.substring(queryString.lastIndexOf(SLASH_CHARACTER) + 1).replaceAll(SLASH_MARKER,SLASH_CHARACTER);
+        List<Release> templates = getTemplates(folderId);
+        CollectionUtils.filter(templates, new Predicate() {
+            @Override
+            public boolean evaluate(Object o) {
+                return ((Release) o).getTitle().equals(templateName);
+            }
+        });
 
-        final String templateInternalId = getTemplateInternalId(resolvedTemplate);
+        String templateInternalId;
 
+        if (templates.size() == 0) {
+            throw new RuntimeException ("No template found with given path " + resolvedTemplate + templateName);
+        } else if (templates.size() == 1) {
+            Release template = templates.get(0);
+            templateInternalId = template.getInternalId();
+        } else {
+            throw new RuntimeException("Multiple templates found with same title.");
+        }
         CreateReleasePublicForm createReleasePublicForm = new CreateReleasePublicForm(resolvedVersion, convertToVariablesMap(variables));
         return service
                 .path("api/v1/templates/Applications")
@@ -83,5 +105,41 @@ public class XLReleaseConnectorImpl extends AbstractXLReleaseConnector {
             }
         });
         return variables;
+    }
+
+    @Override
+    public Folder getFolderByPath(String path) {
+        WebResource service = buildWebResource();
+        return service
+                .path("api/v1/folders/find")
+                .queryParam("byPath",path)
+                .accept(MediaType.APPLICATION_JSON)
+                .get(Folder.class);
+    }
+
+    @Override
+    public List<Release> getTemplates(String folderId) {
+        WebResource service = buildWebResource();
+        GenericType<List<Release>> genericType = new GenericType<List<Release>>() {
+        };
+        return service
+                .path("api/v1/folders")
+                .path(folderId)
+                .path("templates")
+                .accept(MediaType.APPLICATION_JSON)
+                .get(genericType);
+    }
+
+    @Override
+    public List<Folder> getFolders(String folderId) {
+        WebResource service = buildWebResource();
+        GenericType<List<Folder>> genericType = new GenericType<List<Folder>>() {
+        };
+        return service
+                .path("api/v1/folders")
+                .path(folderId)
+                .path("list")
+                .accept(MediaType.APPLICATION_JSON)
+                .get(genericType);
     }
 }

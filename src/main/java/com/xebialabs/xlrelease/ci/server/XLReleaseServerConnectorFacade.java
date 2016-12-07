@@ -29,22 +29,20 @@ import java.util.regex.Pattern;
 import com.google.common.annotations.VisibleForTesting;
 
 import com.xebialabs.xlrelease.ci.NameValuePair;
+import com.xebialabs.xlrelease.ci.util.Folder;
 import com.xebialabs.xlrelease.ci.util.Release;
 import com.xebialabs.xlrelease.ci.util.TemplateVariable;
 
 public class XLReleaseServerConnectorFacade implements XLReleaseServerConnector {
 
-    private XLReleaseServerConnector connectorPre48;
     private XLReleaseServerConnector defaultConnector;
 
     XLReleaseServerConnectorFacade(String serverUrl, String proxyUrl, String username, String password) {
-        this.connectorPre48 = new XLReleaseConnectorImplPre48(serverUrl, proxyUrl, username, password);
         this.defaultConnector = new XLReleaseConnectorImpl(serverUrl, proxyUrl, username, password);
     }
 
     private XLReleaseServerConnector getConnectorForXlrVersion() {
-        String versionString = getVersion();
-        return isVersionPre48(versionString) ? connectorPre48 : defaultConnector;
+        return defaultConnector;
     }
 
     @Override
@@ -82,20 +80,24 @@ public class XLReleaseServerConnectorFacade implements XLReleaseServerConnector 
         getConnectorForXlrVersion().startRelease(releaseId);
     }
 
-    @VisibleForTesting
-    boolean isVersionPre48(String versionString) {
-        if (versionString == null) {
-            return false;
-        }
-        if (versionString.startsWith("0.0.")) {
-            return false;
-        }
-        Matcher matcher = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(versionString);
-        if (!matcher.matches()) {
-            return false;
-        }
-        int major = Integer.parseInt(matcher.group(1));
-        int minor = Integer.parseInt(matcher.group(2));
-        return major < 4 || major == 4 && minor < 8;
+    @Override
+    public String getServerURL() {
+        return getConnectorForXlrVersion().getServerURL();
     }
+
+    @Override
+    public Folder getFolderByPath(String path) {
+        return getConnectorForXlrVersion().getFolderByPath(path);
+    }
+
+    @Override
+    public List<Release> getTemplates(String folderId) {
+        return getConnectorForXlrVersion().getTemplates(folderId);
+    }
+
+    @Override
+    public List<Folder> getFolders(String folderId) {
+        return getConnectorForXlrVersion().getFolders(folderId);
+    }
+
 }

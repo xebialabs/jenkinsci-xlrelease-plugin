@@ -25,6 +25,8 @@ package com.xebialabs.xlrelease.ci.server;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.xebialabs.xlrelease.ci.util.Folder;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,11 @@ public class XLReleaseServerImplMock implements XLReleaseServerConnector {
 
     @Override
     public void testConnection() {
+    }
+
+    @Override
+    public String getServerURL() {
+        return "http://localhost:5516/";
     }
 
     @Override
@@ -79,5 +86,26 @@ public class XLReleaseServerImplMock implements XLReleaseServerConnector {
     @Override
     public void startRelease(final String releaseId) {
 
+    }
+
+    @Override
+    public Folder getFolderByPath(String path) {
+        return new Folder("123","Demo Folder");
+    }
+
+    @Override
+    public List<Folder> getFolders(String folderId) {
+        List<Folder> folders = new ArrayList<Folder>();
+        folders.add(new Folder("123","Demo Folder"));
+        folders.add(new Folder("1231","Demo Folder1"));
+        return folders;
+    }
+
+    @Override
+    public List<Release> getTemplates(String folderId) {
+        List<Release> result = new ArrayList<Release>();
+        result.add(new Release("someid", "atemplate", null));
+
+        return result;
     }
 }
