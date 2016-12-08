@@ -108,4 +108,9 @@ public class XLReleaseServerImplMock implements XLReleaseServerConnector {
 
         return result;
     }
+
+    @Override
+    public String getFolderId(String queryString) {
+        return "folder/folder";
+    }
 }

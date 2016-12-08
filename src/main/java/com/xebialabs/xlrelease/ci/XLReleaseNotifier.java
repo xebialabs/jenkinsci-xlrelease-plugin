@@ -67,6 +67,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static hudson.util.FormValidation.*;
 import static com.xebialabs.xlrelease.ci.server.AbstractXLReleaseConnector.*;
+import static com.xebialabs.xlrelease.ci.util.TemplatePathUtil.*;
 
 public class XLReleaseNotifier extends Notifier {
 
@@ -111,7 +112,8 @@ public class XLReleaseNotifier extends Notifier {
         if (startRelease) {
             startRelease(release, template, resolvedVersion, deploymentListener);
         }
-        deploymentListener.info(Messages.XLReleaseNotifier_releaseLink(getXLReleaseServer().getServerURL() + "#/releases/" + release.getInternalId().replaceAll("/", "-")));
+        String releaseUrl = getXLReleaseServer().getServerURL() + release.getReleaseURL();
+        deploymentListener.info(Messages.XLReleaseNotifier_releaseLink(releaseUrl));
         return true;
     }
 
@@ -143,15 +145,14 @@ public class XLReleaseNotifier extends Notifier {
     public static final class XLReleaseDescriptor extends BuildStepDescriptor<Publisher> {
 
         // ************ SERIALIZED GLOBAL PROPERTIES *********** //
-
-        private transient static XLReleaseServerFactory xlReleaseServerFactory = new XLReleaseServerFactory();
-        private final transient Map<String, XLReleaseServerConnector> credentialServerMap = newHashMap();
         private String xlReleaseServerUrl;
         private String xlReleaseClientProxyUrl;
+        private List<Credential> credentials = newArrayList();
 
         // ************ OTHER NON-SERIALIZABLE PROPERTIES *********** //
-        private List<Credential> credentials = newArrayList();
-        private String lastCredential;
+        private transient static XLReleaseServerFactory xlReleaseServerFactory = new XLReleaseServerFactory();
+        private final transient Map<String, XLReleaseServerConnector> credentialServerMap = newHashMap();
+        private transient String lastCredential;
 
         public XLReleaseDescriptor() {
             load();  //deserialize from xml
@@ -245,8 +246,8 @@ public class XLReleaseNotifier extends Notifier {
 
         public AutoCompletionCandidates doAutoCompleteTemplate(@QueryParameter final String value) {
             try {
-                String queryString = value.replaceAll(SLASH_ESCAPE_SEQ, SLASH_MARKER);
-                String folderId = getFolderId(lastCredential, queryString);
+                String queryString = markSlashEscapeSeq(value);
+                String folderId = getXLReleaseServer(lastCredential).getFolderId(queryString);
 
                 List<Release> templates = getTemplatesByFolderID(lastCredential, folderId);
                 List<Folder> folders = getSubFolders(lastCredential, folderId);
@@ -255,15 +256,14 @@ public class XLReleaseNotifier extends Notifier {
                 CollectionUtils.filter(folders, getFilterPredicate(getSearchString(queryString)));
                 CollectionUtils.filter(templates, getFilterPredicate(getSearchString(queryString)));
 
-                for (Release template1 : templates)
-                    autoCompletionCandidates.add(getFolderPath(queryString) + template1.getTitle().replaceAll(SLASH_CHARACTER, SLASH_ESCAPE_SEQ));
+                String folderPath = getFolderPath(queryString);
+                for (Release template : templates)
+                    autoCompletionCandidates.add(folderPath + escapeSlashSeq(template.getTitle()));
 
                 for (Folder folder : folders)
-                    autoCompletionCandidates.add(getFolderPath(queryString) + folder.getTitle().replaceAll(SLASH_CHARACTER, SLASH_ESCAPE_SEQ));
+                    autoCompletionCandidates.add(folderPath + escapeSlashSeq(folder.getTitle()));
 
                 return autoCompletionCandidates;
-            } catch (UniformInterfaceException exp) {
-                throw new RuntimeException(Messages.XLReleaseNotifier_templateNotExist());
             } catch (Exception exp) {
                 throw new RuntimeException(exp.getMessage());
             }
@@ -327,11 +327,11 @@ public class XLReleaseNotifier extends Notifier {
         }
 
         private Release getTemplate(String credential, String queryString) {
-            queryString = queryString.replaceAll(SLASH_ESCAPE_SEQ, SLASH_MARKER);
+            queryString = markSlashEscapeSeq(queryString);
             try {
 
-                String folderId = getFolderId(credential, queryString);
-                final String templateName = queryString.substring(queryString.lastIndexOf(SLASH_CHARACTER) + 1).replaceAll(SLASH_MARKER, SLASH_CHARACTER);
+                String folderId = getXLReleaseServer(credential).getFolderId(queryString);
+                final String templateName = unEscapeSlashSeq(queryString.substring(queryString.lastIndexOf(SLASH_CHARACTER) + 1));
                 List<Release> templates = getTemplatesByFolderID(credential, folderId);
                 CollectionUtils.filter(templates, new Predicate() {
                     @Override
@@ -360,36 +360,8 @@ public class XLReleaseNotifier extends Notifier {
             return getXLReleaseServer(credential).getTemplates(folderId);
         }
 
-        private String getFolderId(String credential, String queryString) {
-            String folderId = "Applications";
-            if (queryString.contains(SLASH_CHARACTER)) {
-                String folderPath = queryString.substring(0, queryString.lastIndexOf(SLASH_CHARACTER));
-                Folder folder = getXLReleaseServer(credential).getFolderByPath(folderPath);
-                folderId = folder.getId();
-            }
-            return folderId;
-        }
-
         private List<Folder> getSubFolders(String credential, String folderId) {
             return getXLReleaseServer(credential).getFolders(folderId);
-        }
-
-        private String getFolderPath(String queryString) {
-            String folderPath = "";
-            if (queryString.split(SLASH_CHARACTER).length > 1) {
-                folderPath = queryString.substring(0, queryString.lastIndexOf(SLASH_CHARACTER)) + SLASH_CHARACTER;
-            }
-            if (queryString.charAt(queryString.length() - 1) == '/')
-                folderPath = queryString;
-
-            return folderPath;
-        }
-
-        private String getSearchString(String queryString) {
-            String searchString = "";
-            if (queryString.charAt(queryString.length() - 1) != '/')
-                searchString = queryString.split(SLASH_CHARACTER)[queryString.split(SLASH_CHARACTER).length - 1];
-            return searchString;
         }
 
         private Predicate getFilterPredicate(final String searchString) {

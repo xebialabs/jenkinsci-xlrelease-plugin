@@ -82,6 +82,10 @@ public class Release {
         return (id != null) ? id.replace("Applications/", "") : null;
     }
 
+    public String getReleaseURL() {
+        return "#/releases/" + getInternalId().replaceAll("/", "-");
+    }
+
     @Override
     public String toString() {
         return "Release{" +

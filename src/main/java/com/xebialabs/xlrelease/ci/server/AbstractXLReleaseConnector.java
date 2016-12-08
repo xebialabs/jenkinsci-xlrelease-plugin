@@ -166,9 +166,10 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
         return variablesMap;
     }
 
-    protected String getFolderId(String queryString) {
+    @Override
+    public String getFolderId(String queryString) {
         String folderId = "Applications";
-        if (queryString.split(SLASH_CHARACTER).length > 1){
+        if (queryString.contains(SLASH_CHARACTER)) {
             String folderPath = queryString.substring(0, queryString.lastIndexOf(SLASH_CHARACTER));
             Folder folder = getFolderByPath(folderPath);
             folderId = folder.getId();

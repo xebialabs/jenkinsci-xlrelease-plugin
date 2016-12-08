@@ -24,9 +24,6 @@
 package com.xebialabs.xlrelease.ci.server;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import com.google.common.annotations.VisibleForTesting;
 
 import com.xebialabs.xlrelease.ci.NameValuePair;
 import com.xebialabs.xlrelease.ci.util.Folder;
@@ -100,4 +97,8 @@ public class XLReleaseServerConnectorFacade implements XLReleaseServerConnector 
         return getConnectorForXlrVersion().getFolders(folderId);
     }
 
+    @Override
+    public String getFolderId(String queryString) {
+        return getConnectorForXlrVersion().getFolderId(queryString);
+    }
 }

@@ -52,5 +52,7 @@ public interface XLReleaseServerConnector {
 
     Release createRelease(String resolvedTemplate, String resolvedVersion, List<NameValuePair> variables);
 
+    String getFolderId(String queryString);
+
     void startRelease(String releaseId);
 }
