@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
+
+import com.xebialabs.xlrelease.ci.util.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
 import org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider;
@@ -20,10 +22,6 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.api.json.JSONConfiguration;
 
 import com.xebialabs.xlrelease.ci.NameValuePair;
-import com.xebialabs.xlrelease.ci.util.ObjectMapperProvider;
-import com.xebialabs.xlrelease.ci.util.Release;
-import com.xebialabs.xlrelease.ci.util.ServerInfo;
-import com.xebialabs.xlrelease.ci.util.TemplateVariable;
 
 import static javax.ws.rs.core.Response.Status.Family.SUCCESSFUL;
 
@@ -35,6 +33,9 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
     private String password;
     private String proxyUrl;
     private String serverUrl;
+    public static final String SLASH_CHARACTER = "/";
+    public static final String SLASH_MARKER = "::SLASH::";
+    public static final String SLASH_ESCAPE_SEQ = "\\\\/";
 
 
     protected AbstractXLReleaseConnector(String serverUrl, String proxyUrl, String username, String password) {
@@ -52,6 +53,11 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
                 .accept(MediaType.APPLICATION_XML_TYPE)
                 .get(ServerInfo.class);
         return serverInfo.getVersion();
+    }
+
+    @Override
+    public String getServerURL() {
+        return serverUrl;
     }
 
     @Override
@@ -144,16 +150,6 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
         return client.resource(serverUrl);
     }
 
-    protected String getTemplateInternalId(final String templateTitle) {
-        List<Release> templates = searchTemplates(templateTitle);
-        CollectionUtils.filter(templates, new Predicate() {
-            public boolean evaluate(Object o) {
-                return ((Release) o).getTitle().equals(templateTitle);
-            }
-        });
-        return templates.get(0).getInternalId();
-    }
-
     protected List<TemplateVariable> convertToVariablesList(final List<NameValuePair> variables) {
         List<TemplateVariable> result = new ArrayList<TemplateVariable>();
         for (NameValuePair variable : variables) {
@@ -168,6 +164,17 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
             variablesMap.put(variable.propertyName, variable.propertyValue);
         }
         return variablesMap;
+    }
+
+    @Override
+    public String getFolderId(String queryString) {
+        String folderId = "Applications";
+        if (queryString.contains(SLASH_CHARACTER)) {
+            String folderPath = queryString.substring(0, queryString.lastIndexOf(SLASH_CHARACTER));
+            Folder folder = getFolderByPath(folderPath);
+            folderId = folder.getId();
+        }
+        return folderId;
     }
 
     protected abstract ClientResponse getVariablesResponse(String templateId);

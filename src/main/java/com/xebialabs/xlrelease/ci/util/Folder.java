@@ -24,26 +24,24 @@
 package com.xebialabs.xlrelease.ci.util;
 
 
-import java.util.Map;
-import javax.xml.bind.annotation.XmlRootElement;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Map;
 
 @XmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Release {
+public class Folder {
+
     private String id;
     private String title;
-    private String status;
 
-    private Map<String, String> variableValues;
-
-    public Release() {
+    public Folder() {
     }
 
-    public Release(final String id, final String title, final Map<String, String> variableValues) {
+    public Folder(final String id, final String title) {
         this.id = id;
         this.title = title;
-        this.variableValues = variableValues;
     }
 
     public String getId() {
@@ -62,36 +60,11 @@ public class Release {
         this.title = title;
     }
 
-    public Map<String, String> getVariableValues() {
-        return variableValues;
-    }
-
-    public void setVariableValues(final Map<String, String> variableValues) {
-        this.variableValues = variableValues;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(final String status) {
-        this.status = status;
-    }
-
-    public String getInternalId() {
-        return (id != null) ? id.replace("Applications/", "") : null;
-    }
-
-    public String getReleaseURL() {
-        return "#/releases/" + getInternalId().replaceAll("/", "-");
-    }
-
     @Override
     public String toString() {
-        return "Release{" +
+        return "Folder{" +
                 "id='" + id + '\'' +
                 ", title='" + title + '\'' +
-                ", status='" + status + '\'' +
                 '}';
     }
 
@@ -100,7 +73,7 @@ public class Release {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        final Release that = (Release) o;
+        final Folder that = (Folder) o;
 
         if (title != null ? !title.equals(that.title) : that.title != null) return false;
 

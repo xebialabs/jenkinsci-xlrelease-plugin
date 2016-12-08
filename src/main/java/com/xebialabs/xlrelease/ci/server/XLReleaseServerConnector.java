@@ -26,6 +26,7 @@ package com.xebialabs.xlrelease.ci.server;
 import java.util.List;
 
 import com.xebialabs.xlrelease.ci.NameValuePair;
+import com.xebialabs.xlrelease.ci.util.Folder;
 import com.xebialabs.xlrelease.ci.util.Release;
 import com.xebialabs.xlrelease.ci.util.TemplateVariable;
 
@@ -37,11 +38,21 @@ public interface XLReleaseServerConnector {
 
     List<Release> searchTemplates(String filter);
 
+    String getServerURL();
+
     List<Release> getAllTemplates();
 
     List<TemplateVariable> getVariables(String templateId);
 
+    Folder getFolderByPath(String path);
+
+    List<Release> getTemplates(String folderId);
+
+    List<Folder> getFolders(String folderId);
+
     Release createRelease(String resolvedTemplate, String resolvedVersion, List<NameValuePair> variables);
+
+    String getFolderId(String queryString);
 
     void startRelease(String releaseId);
 }

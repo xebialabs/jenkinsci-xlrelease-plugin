@@ -23,32 +23,22 @@
 
 package com.xebialabs.xlrelease.ci;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.*;
-
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.Transformer;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
-
+import com.sun.jersey.api.client.UniformInterfaceException;
 import com.xebialabs.xlrelease.ci.server.XLReleaseServerConnector;
 import com.xebialabs.xlrelease.ci.server.XLReleaseServerFactory;
+import com.xebialabs.xlrelease.ci.util.Folder;
 import com.xebialabs.xlrelease.ci.util.JenkinsReleaseListener;
 import com.xebialabs.xlrelease.ci.util.Release;
 import com.xebialabs.xlrelease.ci.util.TemplateVariable;
-
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.BuildListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -57,28 +47,38 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.xebialabs.xlrelease.ci.util.ListBoxModels.emptyModel;
-import static com.xebialabs.xlrelease.ci.util.ListBoxModels.of;
-import static hudson.util.FormValidation.error;
-import static hudson.util.FormValidation.ok;
-import static hudson.util.FormValidation.warning;
+import static hudson.util.FormValidation.*;
+import static com.xebialabs.xlrelease.ci.server.AbstractXLReleaseConnector.*;
+import static com.xebialabs.xlrelease.ci.util.TemplatePathUtil.*;
 
 public class XLReleaseNotifier extends Notifier {
 
     public final String credential;
-
     public final String template;
     public final String version;
-
-    public List<NameValuePair> variables;
     public final boolean startRelease;
+    public List<NameValuePair> variables;
 
     @DataBoundConstructor
-    public XLReleaseNotifier(String credential, String template, String version,  List<NameValuePair> variables, boolean startRelease) {
+    public XLReleaseNotifier(String credential, String template, String version, List<NameValuePair> variables, boolean startRelease) {
         this.credential = credential;
         this.template = template;
         this.version = version;
@@ -112,7 +112,8 @@ public class XLReleaseNotifier extends Notifier {
         if (startRelease) {
             startRelease(release, template, resolvedVersion, deploymentListener);
         }
-
+        String releaseUrl = getXLReleaseServer().getServerURL() + release.getReleaseURL();
+        deploymentListener.info(Messages.XLReleaseNotifier_releaseLink(releaseUrl));
         return true;
     }
 
@@ -144,23 +145,23 @@ public class XLReleaseNotifier extends Notifier {
     public static final class XLReleaseDescriptor extends BuildStepDescriptor<Publisher> {
 
         // ************ SERIALIZED GLOBAL PROPERTIES *********** //
-
         private String xlReleaseServerUrl;
-
         private String xlReleaseClientProxyUrl;
-
         private List<Credential> credentials = newArrayList();
 
         // ************ OTHER NON-SERIALIZABLE PROPERTIES *********** //
-
-        private final transient Map<String,XLReleaseServerConnector> credentialServerMap = newHashMap();
         private transient static XLReleaseServerFactory xlReleaseServerFactory = new XLReleaseServerFactory();
-
-        private Release release;
+        private final transient Map<String, XLReleaseServerConnector> credentialServerMap = newHashMap();
+        private transient String lastCredential;
 
         public XLReleaseDescriptor() {
             load();  //deserialize from xml
             mapCredentialsByName();
+        }
+
+        @VisibleForTesting
+        public static void setXlReleaseServerFactory(final XLReleaseServerFactory xlReleaseServerFactory) {
+            XLReleaseDescriptor.xlReleaseServerFactory = xlReleaseServerFactory;
         }
 
         private void mapCredentialsByName() {
@@ -168,7 +169,7 @@ public class XLReleaseNotifier extends Notifier {
                 String serverUrl = credential.resolveServerUrl(xlReleaseServerUrl);
                 String proxyUrl = credential.resolveProxyUrl(xlReleaseClientProxyUrl);
                 if (credential.useGlobalCredential) {
-                    StandardUsernamePasswordCredentials cred =  Credential.lookupSystemCredentials(credential.credentialsId);
+                    StandardUsernamePasswordCredentials cred = Credential.lookupSystemCredentials(credential.credentialsId);
                     credentialServerMap.put(credential.name, xlReleaseServerFactory.newInstance(serverUrl, proxyUrl,
                             cred.getUsername(), cred.getPassword() != null ? cred.getPassword().getPlainText() : ""));
                 } else {
@@ -205,7 +206,7 @@ public class XLReleaseNotifier extends Notifier {
                     new URL(url);
                 }
             } catch (MalformedURLException e) {
-                return error("%s is not a valid URL.",url);
+                return error("%s is not a valid URL.", url);
             }
             return ok();
 
@@ -222,53 +223,51 @@ public class XLReleaseNotifier extends Notifier {
             return validateOptionalUrl(xlReleaseClientProxyUrl);
         }
 
-        public FormValidation doCheckTemplate(@QueryParameter String credential, @QueryParameter final String value, @AncestorInPath AbstractProject project) {
+        public FormValidation doValidateTemplate(@QueryParameter String credential, @QueryParameter final String template) {
             try {
-                this.release = getTemplate(credential,value);
-                if(this.release != null) {
-                    return warning("Changing template may unintentionally change your variables");
-                }
-                return warning("Template does not exist.");
+                Release release = getTemplate(credential, template);
+                if (release != null)
+                    return FormValidation.okWithMarkup(Messages.XLReleaseNotifier_sucessmsg("Provided template path is valid."));
+                return error(Messages.XLReleaseNotifier_templateNotExist());
+            } catch (UniformInterfaceException exp) {
+                return error(Messages.XLReleaseNotifier_templateNotExist());
             } catch (Exception exp) {
-                return warning("Failed to communicate with XL Release server");
+                return error(exp.getMessage());
             }
-        }
-
-        private Release getTemplate(String credential, String value) {
-            List<Release> candidates = getXLReleaseServer(credential).searchTemplates(value);
-            for (Release candidate : candidates) {
-                if (candidate.getTitle().equals(value)) {
-                    candidate.setVariableValues(getVariables(credential, candidate));
-                    return candidate;
-                }
-            }
-            return null;
-
         }
 
         private Map<String, String> getVariables(String credential, Release release) {
+            if (release == null) {
+                return Collections.emptyMap();
+            }
             List<TemplateVariable> variables = getXLReleaseServer(credential).getVariables(release.getInternalId());
             return TemplateVariable.toMap(variables);
         }
 
-        public ListBoxModel doFillTemplateItems(@QueryParameter String credential) {
+        public AutoCompletionCandidates doAutoCompleteTemplate(@QueryParameter final String value) {
             try {
-                List<Release> templates = getXLReleaseServer(credential).getAllTemplates();
+                String queryString = markSlashEscapeSeq(value);
+                String folderId = getXLReleaseServer(lastCredential).getFolderId(queryString);
 
-                @SuppressWarnings("unchecked")
-                Collection<String> titles = CollectionUtils.collect(templates, new Transformer() {
-                    public Object transform(Object o) {
-                        return ((Release) o).getTitle();
-                    }
-                });
+                List<Release> templates = getTemplatesByFolderID(lastCredential, folderId);
+                List<Folder> folders = getSubFolders(lastCredential, folderId);
+                final AutoCompletionCandidates autoCompletionCandidates = new AutoCompletionCandidates();
 
-                return of(titles);
+                CollectionUtils.filter(folders, getFilterPredicate(getSearchString(queryString)));
+                CollectionUtils.filter(templates, getFilterPredicate(getSearchString(queryString)));
+
+                String folderPath = getFolderPath(queryString);
+                for (Release template : templates)
+                    autoCompletionCandidates.add(folderPath + escapeSlashSeq(template.getTitle()));
+
+                for (Folder folder : folders)
+                    autoCompletionCandidates.add(folderPath + escapeSlashSeq(folder.getTitle()));
+
+                return autoCompletionCandidates;
             } catch (Exception exp) {
-                return emptyModel();
+                throw new RuntimeException(exp.getMessage());
             }
         }
-
-
 
         public List<Credential> getCredentials() {
             return credentials;
@@ -284,12 +283,17 @@ public class XLReleaseNotifier extends Notifier {
 
         public ListBoxModel doFillCredentialItems() {
             ListBoxModel m = new ListBoxModel();
+            m.add("-- Please Select --", "");
             for (Credential c : credentials)
                 m.add(c.name, c.name);
             return m;
         }
 
         public FormValidation doCheckCredential(@QueryParameter String credential) {
+            if (StringUtils.isEmpty(credential)) {
+                return error("Please select a valid credential");
+            }
+            lastCredential = credential;
             return warning("Changing credentials may unintentionally change your available templates");
         }
 
@@ -298,15 +302,13 @@ public class XLReleaseNotifier extends Notifier {
             return super.newInstance(req, formData);
         }
 
-
         private XLReleaseServerConnector getXLReleaseServer(String credential) {
             checkNotNull(credential);
             return credentialServerMap.get(credential);
         }
 
-
         public Map<String, String> getVariablesOf(final String credential, final String template) {
-            release = getTemplate(credential, template);
+            Release release = getTemplate(credential, template);
             if (release == null) {
                 return Collections.emptyMap();
             }
@@ -315,7 +317,8 @@ public class XLReleaseNotifier extends Notifier {
 
         public int getNumberOfVariables(@QueryParameter String credential, @QueryParameter String template) {
             if (credential != null) {
-                Map<String, String> variables = getVariablesOf(credential,template);
+                Release releaseTemplate = getTemplate(credential, template);
+                Map<String, String> variables = getVariables(credential, releaseTemplate);
                 if (variables != null) {
                     return variables.size();
                 }
@@ -323,9 +326,56 @@ public class XLReleaseNotifier extends Notifier {
             return 0;
         }
 
-        @VisibleForTesting
-        public static void setXlReleaseServerFactory(final XLReleaseServerFactory xlReleaseServerFactory) {
-            XLReleaseDescriptor.xlReleaseServerFactory = xlReleaseServerFactory;
+        private Release getTemplate(String credential, String queryString) {
+            queryString = markSlashEscapeSeq(queryString);
+            try {
+
+                String folderId = getXLReleaseServer(credential).getFolderId(queryString);
+                final String templateName = unEscapeSlashSeq(queryString.substring(queryString.lastIndexOf(SLASH_CHARACTER) + 1));
+                List<Release> templates = getTemplatesByFolderID(credential, folderId);
+                CollectionUtils.filter(templates, new Predicate() {
+                    @Override
+                    public boolean evaluate(Object o) {
+                        return ((Release) o).getTitle().equals(templateName);
+                    }
+                });
+
+                if (templates.size() == 0) {
+                    throw new RuntimeException(Messages.XLReleaseNotifier_templateNotExist());
+                } else if (templates.size() == 1) {
+                    Release template = templates.get(0);
+                    template.setVariableValues(getVariables(credential, template));
+                    return template;
+                } else {
+                    throw new RuntimeException("Multiple templates found with same title.");
+                }
+            } catch (UniformInterfaceException exp) {
+                throw new RuntimeException(Messages.XLReleaseNotifier_templateNotExist());
+            } catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+
+        private List<Release> getTemplatesByFolderID(String credential, String folderId) {
+            return getXLReleaseServer(credential).getTemplates(folderId);
+        }
+
+        private List<Folder> getSubFolders(String credential, String folderId) {
+            return getXLReleaseServer(credential).getFolders(folderId);
+        }
+
+        private Predicate getFilterPredicate(final String searchString) {
+            return new Predicate() {
+                @Override
+                public boolean evaluate(Object object) {
+                    if (object instanceof Release) {
+                        return ((Release) (object)).getTitle().toLowerCase().contains(searchString.toLowerCase());
+                    } else if (object instanceof Folder) {
+                        return ((Folder) (object)).getTitle().toLowerCase().contains(searchString.toLowerCase());
+                    }
+                    return false;
+                }
+            };
         }
     }
 }
