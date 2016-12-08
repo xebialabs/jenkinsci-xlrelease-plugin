@@ -1,18 +1,23 @@
 package com.xebialabs.xlrelease.ci.server;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.ws.rs.core.MediaType;
-
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.GenericType;
-import com.xebialabs.xlrelease.ci.util.*;
+import com.sun.jersey.api.client.WebResource;
+import com.xebialabs.xlrelease.ci.NameValuePair;
+import com.xebialabs.xlrelease.ci.util.CreateReleasePublicForm;
+import com.xebialabs.xlrelease.ci.util.Folder;
+import com.xebialabs.xlrelease.ci.util.Release;
+import com.xebialabs.xlrelease.ci.util.TemplateVariable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
 import org.apache.commons.collections.Transformer;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 
-import com.xebialabs.xlrelease.ci.NameValuePair;
+import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.xebialabs.xlrelease.ci.util.TemplatePathUtil.markSlashEscapeSeq;
+import static com.xebialabs.xlrelease.ci.util.TemplatePathUtil.unEscapeSlashSeq;
 
 public class XLReleaseConnectorImpl extends AbstractXLReleaseConnector {
     public XLReleaseConnectorImpl(final String serverUrl, final String proxyUrl, final String username, final String password) {
@@ -33,22 +38,22 @@ public class XLReleaseConnectorImpl extends AbstractXLReleaseConnector {
     @Override
     public ClientResponse createReleaseResponse(final String resolvedTemplate, final String resolvedVersion, final List<NameValuePair> variables) {
         WebResource service = buildWebResource();
-        String queryString = TemplatePathUtil.markSlashEscapeSeq(resolvedTemplate);
+        String queryString = markSlashEscapeSeq(resolvedTemplate);
         final String folderId = getFolderId(queryString);
-        final String templateName = TemplatePathUtil.unEscapeSlashSeq(queryString.substring(queryString.lastIndexOf(SLASH_CHARACTER) + 1));
+        final String templateName = unEscapeSlashSeq(queryString.substring(queryString.lastIndexOf(SLASH_CHARACTER) + 1));
         List<Release> templates = getTemplates(folderId);
 
         CollectionUtils.filter(templates, new Predicate() {
             @Override
             public boolean evaluate(Object o) {
-            return ((Release) o).getTitle().equals(templateName);
+                return ((Release) o).getTitle().equals(templateName);
             }
         });
 
         String templateInternalId;
 
         if (templates.size() == 0) {
-            throw new RuntimeException ("No template found with given path " + resolvedTemplate + templateName);
+            throw new RuntimeException("No template found with given path " + resolvedTemplate + templateName);
         } else if (templates.size() == 1) {
             Release template = templates.get(0);
             templateInternalId = template.getInternalId();
@@ -110,7 +115,7 @@ public class XLReleaseConnectorImpl extends AbstractXLReleaseConnector {
         WebResource service = buildWebResource();
         return service
                 .path("api/v1/folders/find")
-                .queryParam("byPath",path)
+                .queryParam("byPath", path)
                 .accept(MediaType.APPLICATION_JSON)
                 .get(Folder.class);
     }
