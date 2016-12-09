@@ -1,0 +1,104 @@
+package com.xebialabs.xlrelease.ci.server;
+
+import com.sun.jersey.api.client.GenericType;
+import com.sun.jersey.api.client.WebResource;
+import com.xebialabs.xlrelease.ci.util.Folder;
+import com.xebialabs.xlrelease.ci.util.Release;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.Predicate;
+
+import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
+import java.util.List;
+
+
+public class XLReleaseConnectorPost6Impl extends XLReleaseConnectorImpl {
+
+    public static final String SLASH_CHARACTER = "/";
+
+    public XLReleaseConnectorPost6Impl(String serverUrl, String proxyUrl, String username, String password) {
+        super(serverUrl, proxyUrl, username, password);
+    }
+
+
+    @Override
+    protected String getTemplateInternalId(final String templateTitle) {
+
+        String folderId = getFolderId(templateTitle);
+        List<Release> templates = getTemplates(folderId);
+
+        CollectionUtils.filter(templates, new Predicate() {
+            @Override
+            public boolean evaluate(Object o) {
+                return ((Release) o).getTitle().equals(templateTitle.substring(templateTitle.lastIndexOf('/') + 1));
+            }
+        });
+
+        return templates.get(0).getInternalId();
+    }
+
+    @Override
+    public List<Release> getAllTemplates() {
+        List<Release> templates = new ArrayList<Release>();
+        templates.addAll(getTemplates(getFolderId("")));
+        List<Folder> folders = getFolders(getFolderId(""));
+        for (Folder folder : folders) {
+            fillFolders(folder);
+            templates.addAll(folder.getAllTemplates());
+        }
+        return templates;
+    }
+
+    private void fillFolders (Folder folder) {
+        folder.setFolderList(getFolders(folder.getId()));
+        folder.setTemplates(getTemplates(folder.getId()));
+        if (folder.getFolderList() != null) {
+            for (Folder folder1 : folder.getFolderList()) {
+                fillFolders(folder1);
+            }
+        }
+    }
+
+    private String getFolderId(String queryString) {
+        String folderId = "Applications";
+        if (queryString.contains(SLASH_CHARACTER)) {
+            String folderPath = queryString.substring(0, queryString.lastIndexOf(SLASH_CHARACTER));
+            Folder folder = getFolderByPath(folderPath);
+            folderId = folder.getId();
+        }
+        return folderId;
+    }
+
+    private Folder getFolderByPath(String path) {
+        WebResource service = buildWebResource();
+        return service
+                .path("api/v1/folders/find")
+                .queryParam("byPath", path)
+                .accept(MediaType.APPLICATION_JSON)
+                .get(Folder.class);
+    }
+
+    private List<Release> getTemplates(String folderId) {
+        WebResource service = buildWebResource();
+        GenericType<List<Release>> genericType = new GenericType<List<Release>>() {};
+        return service
+                .path("api/v1/folders")
+                .path(folderId)
+                .path("templates")
+                .accept(MediaType.APPLICATION_JSON)
+                .get(genericType);
+    }
+
+    private List<Folder> getFolders(String folderId) {
+        WebResource service = buildWebResource();
+        GenericType<List<Folder>> genericType = new GenericType<List<Folder>>() {
+        };
+        return service
+                .path("api/v1/folders")
+                .path(folderId)
+                .path("list")
+                .accept(MediaType.APPLICATION_JSON)
+                .get(genericType);
+    }
+
+}
