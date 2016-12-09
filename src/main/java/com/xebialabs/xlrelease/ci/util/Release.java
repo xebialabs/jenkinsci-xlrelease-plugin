@@ -24,9 +24,10 @@
 package com.xebialabs.xlrelease.ci.util;
 
 
-import java.util.Map;
-import javax.xml.bind.annotation.XmlRootElement;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Map;
 
 @XmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -101,6 +102,10 @@ public class Release {
         if (title != null ? !title.equals(that.title) : that.title != null) return false;
 
         return true;
+    }
+
+    public String getReleaseURL() {
+        return "#/releases/" + getInternalId().replaceAll("/", "-");
     }
 
     @Override

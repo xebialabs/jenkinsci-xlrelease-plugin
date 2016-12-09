@@ -89,6 +89,11 @@ public class XLReleaseServerConnectorFacade implements XLReleaseServerConnector 
         getConnectorForXlrVersion().startRelease(releaseId);
     }
 
+    @Override
+    public String getServerURL() {
+        return getConnectorForXlrVersion().getServerURL();
+    }
+
     @VisibleForTesting
     boolean isVersionPre48(String versionString) {
         if (versionString == null) {
@@ -118,6 +123,6 @@ public class XLReleaseServerConnectorFacade implements XLReleaseServerConnector 
             return false;
         }
         int major = Integer.parseInt(matcher.group(1));
-        return major > 6 || major == 6;
+        return major >= 6;
     }
 }

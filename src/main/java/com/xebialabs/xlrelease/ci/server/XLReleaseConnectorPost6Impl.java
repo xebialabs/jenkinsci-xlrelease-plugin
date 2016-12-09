@@ -15,15 +15,48 @@ import java.util.List;
 public class XLReleaseConnectorPost6Impl extends XLReleaseConnectorImpl {
 
     public static final String SLASH_CHARACTER = "/";
+    public static final String SLASH_MARKER = "::SLASH::";
+    public static final String SLASH_ESCAPE_SEQ = "\\\\/";
 
     public XLReleaseConnectorPost6Impl(String serverUrl, String proxyUrl, String username, String password) {
         super(serverUrl, proxyUrl, username, password);
     }
 
+    @Override
+    public List<Release> searchTemplates(String filter) {
+        filter = markSlashEscapeSeq(filter);
+        String folderId = getFolderId(filter);
+        List<Release> templates = getTemplates(folderId);
+        List<Folder> folders = getFolders(folderId);
+
+        CollectionUtils.filter(folders, getFilterPredicate(getSearchString(filter)));
+        CollectionUtils.filter(templates, getFilterPredicate(getSearchString(filter)));
+
+        String folderPath = getFolderPath(filter);
+
+        List<Release> releases = new ArrayList<Release>();
+        for (Release template : templates) {
+            template.setTitle(folderPath + escapeSlashSeq(template.getTitle()));
+
+            template.setStatus("template");
+            releases.add(template);
+            logger.info(template.toString());
+        }
+
+        for (Folder folder : folders) {
+            Release release = new Release();
+            release.setId(folder.getId());
+            release.setTitle(folderPath + escapeSlashSeq(folder.getTitle()));
+            releases.add(release);
+            release.setStatus("folder");
+        }
+
+        return releases;
+    }
 
     @Override
-    protected String getTemplateInternalId(final String templateTitle) {
-
+    protected String getTemplateInternalId(String queryString) {
+        final String templateTitle = unEscapeSlashSeq(queryString);
         String folderId = getFolderId(templateTitle);
         List<Release> templates = getTemplates(folderId);
 
@@ -49,7 +82,7 @@ public class XLReleaseConnectorPost6Impl extends XLReleaseConnectorImpl {
         return templates;
     }
 
-    private void fillFolders (Folder folder) {
+    private void fillFolders(Folder folder) {
         folder.setFolderList(getFolders(folder.getId()));
         folder.setTemplates(getTemplates(folder.getId()));
         if (folder.getFolderList() != null) {
@@ -80,7 +113,8 @@ public class XLReleaseConnectorPost6Impl extends XLReleaseConnectorImpl {
 
     private List<Release> getTemplates(String folderId) {
         WebResource service = buildWebResource();
-        GenericType<List<Release>> genericType = new GenericType<List<Release>>() {};
+        GenericType<List<Release>> genericType = new GenericType<List<Release>>() {
+        };
         return service
                 .path("api/v1/folders")
                 .path(folderId)
@@ -100,5 +134,50 @@ public class XLReleaseConnectorPost6Impl extends XLReleaseConnectorImpl {
                 .accept(MediaType.APPLICATION_JSON)
                 .get(genericType);
     }
+
+    private Predicate getFilterPredicate(final String searchString) {
+        return new Predicate() {
+            @Override
+            public boolean evaluate(Object object) {
+                if (object instanceof Release) {
+                    return ((Release) (object)).getTitle().toLowerCase().contains(searchString.toLowerCase());
+                } else if (object instanceof Folder) {
+                    return ((Folder) (object)).getTitle().toLowerCase().contains(searchString.toLowerCase());
+                }
+                return false;
+            }
+        };
+    }
+
+    private String getSearchString(String queryString) {
+        String searchString = "";
+        if (queryString.charAt(queryString.length() - 1) != '/')
+            searchString = queryString.split(SLASH_CHARACTER)[queryString.split(SLASH_CHARACTER).length - 1];
+        return unEscapeSlashSeq(searchString);
+    }
+
+    private String escapeSlashSeq(String string) {
+        return string.replaceAll(SLASH_CHARACTER, SLASH_ESCAPE_SEQ);
+    }
+
+    private String markSlashEscapeSeq(String string) {
+        return string.replaceAll(SLASH_ESCAPE_SEQ, SLASH_MARKER);
+    }
+
+    private String unEscapeSlashSeq(String string) {
+        return string.replaceAll(SLASH_MARKER, SLASH_CHARACTER);
+    }
+
+    private String getFolderPath(String queryString) {
+        String folderPath = "";
+        if (queryString.split(SLASH_CHARACTER).length > 1) {
+            folderPath = queryString.substring(0, queryString.lastIndexOf(SLASH_CHARACTER)) + SLASH_CHARACTER;
+        }
+        if (queryString.charAt(queryString.length() - 1) == '/')
+            folderPath = queryString;
+
+        return folderPath;
+    }
+
 
 }

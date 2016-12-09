@@ -170,6 +170,11 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
         return variablesMap;
     }
 
+    @Override
+    public String getServerURL() {
+        return serverUrl;
+    }
+
     protected abstract ClientResponse getVariablesResponse(String templateId);
 
     protected abstract ClientResponse createReleaseResponse(String templateTitle, String releaseTitle, List<NameValuePair> variables);
