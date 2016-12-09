@@ -58,8 +58,8 @@ public class TemplateVariable {
     }
 
     private static String getVariableName(String variable) {
-        if (variable.startsWith(VARIABLE_PREFIX) && variable.endsWith(VARIABLE_SUFFIX)) {
-            variable = variable.substring(2, variable.length() - 1);
+        if (isContainsBrackets(variable)) {
+            variable = variable.substring(VARIABLE_PREFIX.length(), variable.length() - VARIABLE_SUFFIX.length());
         }
         return variable;
     }
@@ -86,5 +86,9 @@ public class TemplateVariable {
 
     public void setType(final String type) {
         this.type = type;
+    }
+
+    public static boolean isContainsBrackets (String string){
+        return string.startsWith(VARIABLE_PREFIX) && string.endsWith(VARIABLE_SUFFIX);
     }
 }
