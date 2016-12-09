@@ -45,17 +45,10 @@ public class NameValuePair extends AbstractDescribableImpl<NameValuePair> {
     public String propertyName;
     public String propertyValue;
 
-    public static String VARIABLE_PREFIX = "${";
-    public static String VARIABLE_SUFFIX = "}";
-
     @DataBoundConstructor
     public NameValuePair(String propertyName, String propertyValue) {
         this.propertyName = propertyName;
         this.propertyValue = propertyValue;
-        if (!propertyName.startsWith(VARIABLE_PREFIX) && !propertyName.endsWith(VARIABLE_SUFFIX)) {
-            this.propertyName = VARIABLE_PREFIX + propertyName + VARIABLE_SUFFIX;
-        }
-
     }
 
     @Extension
@@ -66,7 +59,7 @@ public class NameValuePair extends AbstractDescribableImpl<NameValuePair> {
         }
 
         public ListBoxModel doFillPropertyNameItems(@QueryParameter @RelativePath(value = "..") String credential,
-                                                    @QueryParameter @RelativePath(value = "..") String template) {
+                @QueryParameter @RelativePath(value = "..") String template) {
             Map<String, String> variables = getXLReleaseDescriptor().getVariablesOf(credential, template);
             if (variables == null) {
                 return emptyModel();

@@ -72,7 +72,7 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
 
         CollectionUtils.filter(templates, new Predicate() {
             public boolean evaluate(Object o) {
-                return ((Release) o).getTitle().contains(filter);
+                return ((Release) o).getTitle().toLowerCase().contains(filter.toLowerCase());
             }
         });
         logger.info(templates + "\n");

@@ -23,15 +23,12 @@
 
 package com.xebialabs.xlrelease.ci.util;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.xebialabs.xlrelease.ci.NameValuePair.VARIABLE_PREFIX;
-import static com.xebialabs.xlrelease.ci.NameValuePair.VARIABLE_SUFFIX;
+import javax.xml.bind.annotation.XmlRootElement;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 @XmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -47,21 +44,6 @@ public class TemplateVariable {
     public TemplateVariable(final String key, final String value) {
         this.key = key;
         this.value = value;
-    }
-
-    public static Map<String, String> toMap(Collection<? extends TemplateVariable> variables) {
-        Map<String, String> result = new HashMap<String, String>();
-        for (TemplateVariable variable : variables) {
-            result.put(getVariableName(variable.getKey()), variable.getValue() == null ? null : variable.getValue().toString());
-        }
-        return result;
-    }
-
-    private static String getVariableName(String variable) {
-        if (variable.startsWith(VARIABLE_PREFIX) && variable.endsWith(VARIABLE_SUFFIX)) {
-            variable = variable.substring(2, variable.length() - 1);
-        }
-        return variable;
     }
 
     public String getKey() {
@@ -86,5 +68,13 @@ public class TemplateVariable {
 
     public void setType(final String type) {
         this.type = type;
+    }
+
+    public static Map<String, String> toMap(Collection<? extends TemplateVariable> variables) {
+        Map<String, String> result = new HashMap<String, String>();
+        for (TemplateVariable variable : variables) {
+            result.put(variable.getKey(), variable.getValue() == null ? null : variable.getValue().toString());
+        }
+        return result;
     }
 }
