@@ -140,9 +140,9 @@ public class XLReleaseConnectorPost6Impl extends XLReleaseConnectorImpl {
             @Override
             public boolean evaluate(Object object) {
                 if (object instanceof Release) {
-                    return ((Release) (object)).getTitle().toLowerCase().contains(searchString.toLowerCase());
+                    return ((Release) (object)).getTitle().toLowerCase().startsWith(searchString.toLowerCase());
                 } else if (object instanceof Folder) {
-                    return ((Folder) (object)).getTitle().toLowerCase().contains(searchString.toLowerCase());
+                    return ((Folder) (object)).getTitle().toLowerCase().startsWith(searchString.toLowerCase());
                 }
                 return false;
             }
