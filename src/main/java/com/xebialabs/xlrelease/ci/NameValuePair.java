@@ -41,7 +41,7 @@ import jenkins.model.Jenkins;
 
 import static com.xebialabs.xlrelease.ci.XLReleaseNotifier.XLReleaseDescriptor;
 import static com.xebialabs.xlrelease.ci.util.ListBoxModels.emptyModel;
-import static com.xebialabs.xlrelease.ci.util.TemplateVariable.isContainsBrackets;
+import static com.xebialabs.xlrelease.ci.util.TemplateVariable.isVariable;
 
 public class NameValuePair extends AbstractDescribableImpl<NameValuePair> {
 
@@ -55,7 +55,7 @@ public class NameValuePair extends AbstractDescribableImpl<NameValuePair> {
     public NameValuePair(String propertyName, String propertyValue) {
         this.propertyName = propertyName;
         this.propertyValue = propertyValue;
-        if (!isContainsBrackets(propertyName)) {
+        if (!isVariable(propertyName)) {
             this.propertyName = VARIABLE_PREFIX + propertyName + VARIABLE_SUFFIX;
         }
 
