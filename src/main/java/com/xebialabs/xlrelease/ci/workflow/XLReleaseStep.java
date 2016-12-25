@@ -1,11 +1,8 @@
 package com.xebialabs.xlrelease.ci.workflow;
 
 import com.google.inject.Inject;
-import com.sun.istack.NotNull;
-import com.sun.jersey.api.client.UniformInterfaceException;
 import com.xebialabs.xlrelease.ci.NameValuePair;
 import com.xebialabs.xlrelease.ci.XLReleaseNotifier;
-import com.xebialabs.xlrelease.ci.util.Release;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Util;
@@ -13,8 +10,6 @@ import hudson.model.AutoCompletionCandidates;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
@@ -23,13 +18,10 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static com.xebialabs.xlrelease.ci.XLReleaseNotifier.XLReleaseDescriptor;
-import static hudson.util.FormValidation.error;
-import static hudson.util.FormValidation.warning;
 
 public class XLReleaseStep extends AbstractStepImpl {
 
