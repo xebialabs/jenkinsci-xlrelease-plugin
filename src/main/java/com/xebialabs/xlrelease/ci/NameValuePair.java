@@ -55,10 +55,14 @@ public class NameValuePair extends AbstractDescribableImpl<NameValuePair> {
     public NameValuePair(String propertyName, String propertyValue) {
         this.propertyName = propertyName;
         this.propertyValue = propertyValue;
-        if (!isVariable(propertyName)) {
-            this.propertyName = VARIABLE_PREFIX + propertyName + VARIABLE_SUFFIX;
-        }
+    }
 
+    public String getPropertyName() {
+
+        if (!isVariable(propertyName)) {
+            return VARIABLE_PREFIX + propertyName + VARIABLE_SUFFIX;
+        }
+        return propertyName;
     }
 
     @Extension

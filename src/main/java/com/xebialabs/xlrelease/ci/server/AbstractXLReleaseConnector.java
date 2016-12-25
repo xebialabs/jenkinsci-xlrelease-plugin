@@ -168,7 +168,7 @@ public abstract class AbstractXLReleaseConnector implements XLReleaseServerConne
     protected Map<String, String> convertToVariablesMap(final List<NameValuePair> variables) {
         Map<String, String> variablesMap = new HashMap<String, String>();
         for (NameValuePair variable : variables) {
-            variablesMap.put(variable.propertyName, variable.propertyValue);
+            variablesMap.put(variable.getPropertyName(), variable.propertyValue);
         }
         return variablesMap;
     }

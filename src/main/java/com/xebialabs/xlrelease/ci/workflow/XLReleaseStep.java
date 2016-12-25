@@ -2,12 +2,14 @@ package com.xebialabs.xlrelease.ci.workflow;
 
 import com.google.inject.Inject;
 import com.sun.istack.NotNull;
+import com.sun.jersey.api.client.UniformInterfaceException;
 import com.xebialabs.xlrelease.ci.NameValuePair;
 import com.xebialabs.xlrelease.ci.XLReleaseNotifier;
 import com.xebialabs.xlrelease.ci.util.Release;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Util;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -26,18 +28,20 @@ import java.util.List;
 import java.util.Map;
 
 import static com.xebialabs.xlrelease.ci.XLReleaseNotifier.XLReleaseDescriptor;
+import static hudson.util.FormValidation.error;
+import static hudson.util.FormValidation.warning;
 
 public class XLReleaseStep extends AbstractStepImpl {
 
-    public String credential = null;
+    public String serverCredentials = null;
     public String template = null;
     public String version = null;
     public List<NameValuePair> variables = null;
     public boolean startRelease = false;
 
     @DataBoundConstructor
-    public XLReleaseStep(String credential, String template, String version, List<NameValuePair> variables, boolean startRelease) {
-        this.credential = credential;
+    public XLReleaseStep(String serverCredentials, String template, String version, List<NameValuePair> variables, boolean startRelease) {
+        this.serverCredentials = serverCredentials;
         this.template = template;
         this.version = version;
         this.variables = variables;
@@ -45,8 +49,8 @@ public class XLReleaseStep extends AbstractStepImpl {
     }
 
     @DataBoundSetter
-    public void setCredential(@NotNull String credential) {
-        this.credential = Util.fixEmptyAndTrim(credential);
+    public void setServerCredentials(String serverCredentials) {
+        this.serverCredentials = serverCredentials;
     }
 
     @DataBoundSetter
@@ -94,10 +98,13 @@ public class XLReleaseStep extends AbstractStepImpl {
             return "Invoke a XLR Release";
         }
 
-        public ListBoxModel doFillTemplateItems(@QueryParameter String credential) {
-            return getXLReleaseDescriptor().doFillTemplateItems(credential);
+        public AutoCompletionCandidates doAutoCompleteTemplate(@QueryParameter final String value) {
+            return getXLReleaseDescriptor().doAutoCompleteTemplate(value);
         }
 
+        public FormValidation doValidateTemplate(@QueryParameter String credential, @QueryParameter final String template) {
+           return getXLReleaseDescriptor().doValidateTemplate(credential,template);
+        }
         public ListBoxModel doFillCredentialItems() {
             return getXLReleaseDescriptor().doFillCredentialItems();
         }
@@ -108,10 +115,7 @@ public class XLReleaseStep extends AbstractStepImpl {
         }
 
         public FormValidation doCheckCredential(@QueryParameter String credential) {
-            if (StringUtils.isEmpty(credential)) {
-                return FormValidation.error("Please select a valid credential");
-            }
-            return null;
+            return getXLReleaseDescriptor().doCheckCredential(credential);
         }
 
         public int getNumberOfVariables(@QueryParameter String credential, @QueryParameter String template) {
@@ -138,22 +142,8 @@ public class XLReleaseStep extends AbstractStepImpl {
 
         @Override
         protected Void run() throws Exception {
-            XLReleaseNotifier releaseNotifier = new XLReleaseNotifier(step.credential, step.template, step.version, step.variables, step.startRelease);
-            String resolvedVersion = envVars.expand(step.version);
-            List<NameValuePair> resolvedVariables = new ArrayList<NameValuePair>();
-            if (CollectionUtils.isNotEmpty(step.variables)) {
-                for (NameValuePair nameValuePair : step.variables) {
-                    resolvedVariables.add(new NameValuePair(nameValuePair.propertyName, envVars.expand(nameValuePair.propertyValue)));
-                }
-            }
-
-            Release release = releaseNotifier.createRelease(step.template, resolvedVersion, resolvedVariables);
-            listener.getLogger().println("Create a new release from template " + step.template + " with name " + resolvedVersion + " and ID " + release.getId());
-
-            if (step.startRelease) {
-                releaseNotifier.startRelease(release);
-                listener.getLogger().println("Start a release from template " + step.template + " with name " + resolvedVersion + " and ID " + release.getId());
-            }
+            XLReleaseNotifier releaseNotifier = new XLReleaseNotifier(step.serverCredentials, step.template, step.version, step.variables, step.startRelease);
+            releaseNotifier.executeRelease(envVars,listener);
             return null;
         }
     }

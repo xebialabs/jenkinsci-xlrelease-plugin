@@ -35,10 +35,7 @@ import com.xebialabs.xlrelease.ci.util.TemplateVariable;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.AutoCompletionCandidates;
-import hudson.model.BuildListener;
+import hudson.model.*;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
@@ -90,12 +87,13 @@ public class XLReleaseNotifier extends Notifier {
 
     @Override
     public boolean perform(final AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+        return executeRelease(build.getEnvironment(listener),listener);
+    }
+
+    public boolean executeRelease (EnvVars envVars, TaskListener listener) {
         final JenkinsReleaseListener deploymentListener = new JenkinsReleaseListener(listener);
 
-        final EnvVars envVars = build.getEnvironment(listener);
         String resolvedVersion = envVars.expand(version);
-
-
         List<NameValuePair> resolvedVariables = new ArrayList<NameValuePair>();
         if (CollectionUtils.isNotEmpty(variables)) {
             for (NameValuePair nameValuePair : variables) {
@@ -115,19 +113,19 @@ public class XLReleaseNotifier extends Notifier {
         String releaseUrl = getXLReleaseServer().getServerURL() + release.getReleaseURL();
         deploymentListener.info(Messages.XLReleaseNotifier_releaseLink(releaseUrl));
         return true;
+
     }
 
-    public Release createRelease(final String resolvedTemplate, final String resolvedVersion, final List<NameValuePair> resolvedVariables) {
+    private Release createRelease(final String resolvedTemplate, final String resolvedVersion, final List<NameValuePair> resolvedVariables) {
         // create a new release instance
         Release release = getXLReleaseServer().createRelease(resolvedTemplate, resolvedVersion, resolvedVariables);
         return release;
     }
 
-    public void startRelease(final Release release) {
+    private void startRelease(final Release release) {
         // start the release
         getXLReleaseServer().startRelease(release.getInternalId());
     }
-
 
     private XLReleaseServerConnector getXLReleaseServer() {
         XLReleaseServerConnector connector = getDescriptor().getXLReleaseServer(credential);
@@ -156,7 +154,7 @@ public class XLReleaseNotifier extends Notifier {
 
         private final transient Map<String,XLReleaseServerConnector> credentialServerMap = newHashMap();
         private transient static XLReleaseServerFactory xlReleaseServerFactory = new XLReleaseServerFactory();
-        private transient String lastCredential;
+        public transient String lastCredential;
         private Release release;
 
         public XLReleaseDescriptor() {
