@@ -144,6 +144,12 @@ dependencies {
     testCompile "org.jenkins-ci.modules:upstart-slave-installer:1.1@jm"
 
     jenkinsTest 'org.jenkins-ci.main:maven-plugin:1.480@jar'
+    jenkinsTest "org.jenkins-ci.plugins:credentials:1.16.1@jar"
+
+    jenkinsTest ("org.jenkins-ci.plugins.workflow:workflow-step-api:1.10@jar")  { transitive = true }
+    jenkinsTest ("org.jenkins-ci.plugins.workflow:workflow-support:1.10@jar") { transitive = true }
+    jenkinsTest ("org.jenkins-ci.plugins.workflow:workflow-cps:1.10@jar") { transitive = true }
+
 }
 configurations {
     all*.exclude group: 'org.jenkins-ci.modules', module: 'launchd-slave-installer'
@@ -178,6 +184,10 @@ dependencies {
     itestCompile "org.jenkins-ci.plugins:mailer:1.4@jar"
     itestCompile "org.jenkins-ci.main:maven-plugin:1.509.1@jar"
     itestCompile "org.jenkins-ci.plugins:javadoc:1.0@jar"
+
+    itestCompile "org.jenkins-ci.plugins.workflow:workflow-job:1.10@jar"
+    itestCompile "org.jenkins-ci.plugins.workflow:workflow-cps:1.10@jar"
+    itestCompile "org.jenkins-ci.plugins.workflow:workflow-api:1.10@jar"
 }
 
 task itest(type: Test) {
