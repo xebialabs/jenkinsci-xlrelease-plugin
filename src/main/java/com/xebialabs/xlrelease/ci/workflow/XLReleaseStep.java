@@ -94,10 +94,10 @@ public class XLReleaseStep extends AbstractStepImpl {
             return getXLReleaseDescriptor().doAutoCompleteTemplate(value);
         }
 
-        public FormValidation doValidateTemplate(@QueryParameter String credential, @QueryParameter final String template) {
-           return getXLReleaseDescriptor().doValidateTemplate(credential,template);
+        public FormValidation doValidateTemplate(@QueryParameter String serverCredentials, @QueryParameter final String template) {
+           return getXLReleaseDescriptor().doValidateTemplate(serverCredentials,template);
         }
-        public ListBoxModel doFillCredentialItems() {
+        public ListBoxModel doFillServerCredentialsItems() {
             return getXLReleaseDescriptor().doFillCredentialItems();
         }
 
@@ -106,12 +106,12 @@ public class XLReleaseStep extends AbstractStepImpl {
             return getXLReleaseDescriptor().getVariablesOf(credential, template);
         }
 
-        public FormValidation doCheckCredential(@QueryParameter String credential) {
-            return getXLReleaseDescriptor().doCheckCredential(credential);
+        public FormValidation doCheckServerCredentials(@QueryParameter String serverCredentials) {
+            return getXLReleaseDescriptor().doCheckCredential(serverCredentials);
         }
 
-        public int getNumberOfVariables(@QueryParameter String credential, @QueryParameter String template) {
-            return getXLReleaseDescriptor().getNumberOfVariables(credential, template);
+        public int getNumberOfVariables(@QueryParameter String serverCredentials, @QueryParameter String template) {
+            return getXLReleaseDescriptor().getNumberOfVariables(serverCredentials, template);
         }
 
         private XLReleaseDescriptor getXLReleaseDescriptor() {
