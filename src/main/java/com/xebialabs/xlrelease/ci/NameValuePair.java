@@ -27,6 +27,7 @@ package com.xebialabs.xlrelease.ci;
 import java.util.Map;
 
 import com.xebialabs.xlrelease.ci.util.TemplateVariable;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -72,8 +73,10 @@ public class NameValuePair extends AbstractDescribableImpl<NameValuePair> {
             return "NameValuePair";
         }
 
-        public ListBoxModel doFillPropertyNameItems(@QueryParameter @RelativePath(value = "..") String credential,
+        public ListBoxModel doFillPropertyNameItems(@QueryParameter @RelativePath(value = "..") String credential, @QueryParameter @RelativePath(value = "..") String serverCredentials,
                 @QueryParameter @RelativePath(value = "..") String template) {
+            if (StringUtils.isEmpty(credential))
+                credential = serverCredentials;
             Map<String, String> variables = getXLReleaseDescriptor().getVariablesOf(credential, template);
             if (variables == null) {
                 return emptyModel();
