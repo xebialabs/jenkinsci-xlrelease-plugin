@@ -82,12 +82,12 @@ public class XLReleaseStep extends AbstractStepImpl {
 
         @Override
         public String getFunctionName() {
-            return "xlRelease";
+            return "xlrCreateRelease";
         }
 
         @Override
         public String getDisplayName() {
-            return "Invoke a XLR Release";
+            return "Create and invoke a XLR release";
         }
 
         public AutoCompletionCandidates doAutoCompleteTemplate(@QueryParameter final String value) {
