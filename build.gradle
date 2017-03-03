@@ -96,7 +96,7 @@ configurations {
 }
 
 jpi.doFirst {
-    classpath = classpath + project.configurations.additionalLibs
+  classpath = classpath + project.configurations.additionalLibs
 }
 
 def truezipVersion = "7.1.4" // this is the latest version not to bork on a Java6 Jenkins master/slave-setup
@@ -201,9 +201,9 @@ if (project.hasProperty('xlReleaseIntegration.host')) {
     def username = project.property('xlReleaseIntegration.username')
     def password = project.property('xlReleaseIntegration.password')
     itest.systemProperties([
-            "xlReleaseIntegration.host" : "$host",
-            "xlReleaseIntegration.username" : "$username",
-            "xlReleaseIntegration.password" : "$password"
+        "xlReleaseIntegration.host" : "$host",
+        "xlReleaseIntegration.username" : "$username",
+        "xlReleaseIntegration.password" : "$password"
     ])
 }
 
